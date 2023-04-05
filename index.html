@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <style>
+    html,
+    body {
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    #renderCanvas {
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+  </style>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+</head>
+
+<body>
+  <canvas id="renderCanvas" touch-action="none"></canvas>
+  <script>
+
+    // USB device vendor and product IDs
+    const vendorId = 0x2717;
+    const productId = 0xff08;
+
+    // Variables to store USB device and input endpoint
+    let usbDevice;
+    let inputEndpoint;
+
+    // Function to connect to USB device and retrieve input endpoint
+    async function connectToDevice() {
+      // Request USB device
+      usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: vendorId, productId: productId }] });
+
+      // Open USB device
+      await usbDevice.open();
+
+      // Select USB configuration and interface
+      await usbDevice.selectConfiguration(1);
+      await usbDevice.claimInterface(0);
+
+      // Retrieve input endpoint
+      inputEndpoint = usbDevice.configuration.interfaces[0].alternate.endpoints.find(e => e.direction === "in");
+
+      // Enable UI elements
+      document.getElementById("receivedData").disabled = false;
+
+      // Start listening for incoming data
+      receiveData();
+    }
+
+    // Function to receive incoming data from USB device
+    async function receiveData() {
+      // Receive data from USB device
+      let result = await usbDevice.transferIn(inputEndpoint.endpointNumber, inputEndpoint.packetSize);
+
+      // Convert received data to string
+      let receivedData = new TextDecoder().decode(result.data);
+
+      // Append received data to text area
+      console.log(receivedData)
+      // Continue listening for incoming data
+      receiveData();
+    }
+
+    document.addEventListener("click", connectToDevice)
+
+    var canvas = document.getElementById("renderCanvas");
+    var engine = new BABYLON.Engine(canvas, true);
+
+    var createScene = function () {
+
+      // This creates a basic Babylon Scene object (non-mesh)
+      var scene = new BABYLON.Scene(engine);
+
+      /********** DEVICE ORIENTATION CAMERA EXAMPLE **************************/
+
+      // This creates and positions a device orientation camera 	
+      var camera = new BABYLON.DeviceOrientationCamera("DevOr_camera", new BABYLON.Vector3(0, 0, 0), scene);
+
+      // This targets the camera to scene origin
+      camera.setTarget(new BABYLON.Vector3(0, 0, 10));
+
+      // This attaches the camera to the canvas
+      camera.attachControl(canvas, true);
+      /**************************************************************/
+
+      // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+      var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+      //Materials
+      var redMat = new BABYLON.StandardMaterial("red", scene);
+      redMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+      redMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
+      redMat.specularColor = new BABYLON.Color3(1, 0, 0);
+
+      var greenMat = new BABYLON.StandardMaterial("green", scene);
+      greenMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
+      greenMat.emissiveColor = new BABYLON.Color3(0, 1, 0);
+      greenMat.specularColor = new BABYLON.Color3(0, 1, 0);
+
+      var blueMat = new BABYLON.StandardMaterial("blue", scene);
+      blueMat.diffuseColor = new BABYLON.Color3(0, 0, 1);
+      blueMat.emissiveColor = new BABYLON.Color3(0, 0, 1);
+      blueMat.specularColor = new BABYLON.Color3(0, 0, 1);
+
+      // Shapes
+      var plane1 = new BABYLON.Mesh.CreatePlane("plane1", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
+      plane1.position.x = -3;
+      plane1.position.z = 0;
+      plane1.material = redMat;
+
+      var plane2 = new BABYLON.Mesh.CreatePlane("plane2", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
+      plane2.position.x = 3;
+      plane2.position.z = -1.5;
+      plane2.material = greenMat;
+
+      var plane3 = new BABYLON.Mesh.CreatePlane("plane3", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
+      plane3.position.x = 3;
+      plane3.position.z = 1.5;
+      plane3.material = blueMat;
+
+      var ground = BABYLON.Mesh.CreateGround("ground1", 10, 10, 2, scene);
+
+      return scene;
+
+    };
+    var scene = createScene();
+    engine.runRenderLoop(function () {
+      scene.render();
+    });
+    window.addEventListener("resize", function () {
+      engine.resize();
+    });
+
+  </script>
+</body>
+
+</html>

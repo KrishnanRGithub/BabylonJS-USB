@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebUSB Test</title>
+</head>
+
+<body>
+    <h1>WebUSB Test</h1>
+    <button id="connectButton">Connect to USB device</button>
+    <p>Send data:</p>
+    <textarea id="dataToSend"></textarea>
+    <button id="sendButton">Send data</button>
+
+    <script>
+        // USB device vendor and product IDs
+        const vendorId = 0x2717;
+        const productId = 0xff08;
+
+        // Variables to store USB device and output endpoint
+        let usbDevice;
+        let outputEndpoint;
+
+        // Function to connect to USB device and retrieve output endpoint
+        async function connectToDevice() {
+            // Request USB device
+            usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: vendorId, productId: productId }] });
+
+            // Open USB device
+            await usbDevice.open();
+
+            // Select USB configuration and interface
+            await usbDevice.selectConfiguration(1);
+            await usbDevice.claimInterface(0);
+
+            // Retrieve output endpoint
+            outputEndpoint = usbDevice.configuration.interfaces[0].alternate.endpoints.find(e => e.direction === "out");
+
+            // Enable UI elements
+            document.getElementById("dataToSend").disabled = false;
+            document.getElementById("sendButton").disabled = false;
+        }
+
+        // Function to send data stream to USB device
+        async function sendData() {
+            // Get data from input element
+            let dataToSend = document.getElementById("dataToSend").value;
+
+            // Convert data to binary format
+            let data = new TextEncoder().encode(dataToSend);
+
+            // Send data to USB device
+            await usbDevice.transferOut(outputEndpoint.endpointNumber, data);
+        }
+
+        // Add event listeners to UI elements
+        document.getElementById("connectButton").addEventListener("click", connectToDevice);
+        document.getElementById("sendButton").addEventListener("click", sendData);
+
+        // Disable UI elements until USB device is connected
+        document.getElementById("dataToSend").disabled = true;
+        document.getElementById("sendButton").disabled = true;
+    </script>
+</body>
+
+</html>

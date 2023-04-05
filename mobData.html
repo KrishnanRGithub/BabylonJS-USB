@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mobile IMU Values</title>
+</head>
+
+<body>
+    <h1>Mobile IMU Values</h1>
+    <p>Acceleration:</p>
+    <p id="acceleration"></p>
+    <p>Rotation:</p>
+    <p id="rotation"></p>
+
+    <!-- sphere.rotation.x = beta;
+    sphere.rotation.y = gamma;
+    sphere.rotation.z = alpha; -->
+    <script>
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', function (event) {
+                var acceleration = event.acceleration;
+                var rotation = event.rotationRate;
+
+                document.getElementById("acceleration").innerHTML = "X: " + acceleration.x + ", Y: " + acceleration.y + ", Z: " + acceleration.z;
+                document.getElementById("rotation").innerHTML = "Alpha: " + rotation.alpha + ", Beta: " + rotation.beta + ", Gamma: " + rotation.gamma;
+            });
+        } else {
+            alert("Device motion not supported.");
+        }
+    </script>
+</body>
+
+</html>
