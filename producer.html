@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Producer Page</title>
+</head>
+<body>
+  <h1>Producer Page</h1>
+  <p id="acceleration"></p>
+  <p id="rotation"></p>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    const socket = io();
+
+    const accelerationElement = document.querySelector('#acceleration');
+    const rotationElement = document.querySelector('#rotation');
+
+    const quat = new THREE.Quaternion();
+    const euler = new THREE.Euler();
+    const accVector = new THREE.Vector3();
+    const accGravity = new THREE.Vector3(0, 0, -1);
+
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', (event) => {
+        const alpha = THREE.Math.degToRad(event.alpha);
+        const beta = THREE.Math.degToRad(event.beta);
+        const gamma = THREE.Math.degToRad(event.gamma);
+        euler.set(beta, alpha, -gamma, 'YXZ');
+        quat.setFromEuler(euler);
+        accVector.set(0, 0, -1);
+        accVector.applyQuaternion(quat);
+        const acceleration = accGravity.clone().sub(accVector).multiplyScalar(9.81);
+        const rotation = { x: beta, y: alpha, z: -gamma };
+        accelerationElement.innerText = `Acceleration: x=${acceleration.x.toFixed(2)}, y=${acceleration.y.toFixed(2)}, z=${acceleration.z.toFixed(2)}`;
+        rotationElement.innerText = `Rotation: x=${rotation.x.toFixed(2)}, y=${rotation.y.toFixed(2)}, z=${rotation.z.toFixed(2)}`;
+        const data = { acceleration: acceleration.toArray(), rotation };
+        socket.emit('publish', JSON.stringify(data));
+      }, false);
+    }
+  </script>
+</body>
+</html>

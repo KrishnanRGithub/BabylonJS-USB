@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Consumer Page</title>
+</head>
+<body>
+  <h1>Consumer Page</h1>
+  <ul id="data"></ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const dataElement = document.querySelector('#data');
+
+    socket.emit('subscribe');
+    socket.on('imu-data', (data) => {
+      const li = document.createElement('li');
+      li.innerText = `Acceleration: x=${data.acceleration[0].toFixed(2)}, y=${data.acceleration[1].toFixed(2)}, z=${data.acceleration[2].toFixed(2)}, Rotation: x=${data.rotation.x.toFixed(2)}, y=${data.rotation.y.toFixed(2)}, z=${data.rotation.z.toFixed(2)}`;
+      dataElement.innerHTML=li.innerText;
+    });
+
+    window.addEventListener('beforeunload', () => {
+      socket.emit('unsubscribe');
+    });
+  </script>
+</body>
+</html>

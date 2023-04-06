@@ -31,35 +31,31 @@
 
             // Select USB configuration and interface
             await usbDevice.selectConfiguration(1);
-            await usbDevice.claimInterface(0);
+            await usbDevice.claimInterface(1);
 
             // Retrieve output endpoint
             outputEndpoint = usbDevice.configuration.interfaces[0].alternate.endpoints.find(e => e.direction === "out");
 
-            // Enable UI elements
-            document.getElementById("dataToSend").disabled = false;
-            document.getElementById("sendButton").disabled = false;
+
         }
 
         // Function to send data stream to USB device
         async function sendData() {
             // Get data from input element
             let dataToSend = document.getElementById("dataToSend").value;
-
             // Convert data to binary format
             let data = new TextEncoder().encode(dataToSend);
 
             // Send data to USB device
-            await usbDevice.transferOut(outputEndpoint.endpointNumber, data);
+            let y = await usbDevice.transferOut(outputEndpoint.endpointNumber, data);
+
         }
 
         // Add event listeners to UI elements
         document.getElementById("connectButton").addEventListener("click", connectToDevice);
         document.getElementById("sendButton").addEventListener("click", sendData);
 
-        // Disable UI elements until USB device is connected
-        document.getElementById("dataToSend").disabled = true;
-        document.getElementById("sendButton").disabled = true;
+
     </script>
 </body>
 

@@ -23,118 +23,144 @@
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
   <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
   <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
 </head>
 
 <body>
   <canvas id="renderCanvas" touch-action="none"></canvas>
   <script>
 
-    // USB device vendor and product IDs
-    const vendorId = 0x2717;
-    const productId = 0xff08;
-
-    // Variables to store USB device and input endpoint
-    let usbDevice;
-    let inputEndpoint;
-
-    // Function to connect to USB device and retrieve input endpoint
-    async function connectToDevice() {
-      // Request USB device
-      usbDevice = await navigator.usb.requestDevice({ filters: [{ vendorId: vendorId, productId: productId }] });
-
-      // Open USB device
-      await usbDevice.open();
-
-      // Select USB configuration and interface
-      await usbDevice.selectConfiguration(1);
-      await usbDevice.claimInterface(0);
-
-      // Retrieve input endpoint
-      inputEndpoint = usbDevice.configuration.interfaces[0].alternate.endpoints.find(e => e.direction === "in");
-
-      // Enable UI elements
-      document.getElementById("receivedData").disabled = false;
-
-      // Start listening for incoming data
-      receiveData();
-    }
-
-    // Function to receive incoming data from USB device
-    async function receiveData() {
-      // Receive data from USB device
-      let result = await usbDevice.transferIn(inputEndpoint.endpointNumber, inputEndpoint.packetSize);
-
-      // Convert received data to string
-      let receivedData = new TextDecoder().decode(result.data);
-
-      // Append received data to text area
-      console.log(receivedData)
-      // Continue listening for incoming data
-      receiveData();
-    }
-
-    document.addEventListener("click", connectToDevice)
-
     var canvas = document.getElementById("renderCanvas");
     var engine = new BABYLON.Engine(canvas, true);
 
-    var createScene = function () {
+    const createScene =  () => {
+    const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
 
-      // This creates a basic Babylon Scene object (non-mesh)
-      var scene = new BABYLON.Scene(engine);
+    /**** Set camera and light *****/
+const camera = new BABYLON.UniversalCamera("UniversalCamera", new BABYLON.Vector3(2, 2, -5), scene);
+    camera.attachControl(canvas, true);
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
 
-      /********** DEVICE ORIENTATION CAMERA EXAMPLE **************************/
+    const box = BABYLON.MeshBuilder.CreateBox("box", {});
+    const ground = BABYLON.MeshBuilder.CreateGround("ground", {width:10, height:10});
 
-      // This creates and positions a device orientation camera 	
-      var camera = new BABYLON.DeviceOrientationCamera("DevOr_camera", new BABYLON.Vector3(0, 0, 0), scene);
+      const socket = io();
+  socket.emit('subscribe');
+  socket.on('imu-data', (data) => {
+    const { acceleration, rotation } = data;
+    // const { x, y, z } = acceleration;
+    const x= acceleration[0];
+    const y= acceleration[1];
+    const z= acceleration[2];
+    const cameraPosition = new BABYLON.Vector3(x * 5, y * 5, z * 5);
+    // camera.position = cameraPosition;
 
-      // This targets the camera to scene origin
-      camera.setTarget(new BABYLON.Vector3(0, 0, 10));
+    // const { X, Y, Z } = rotation;
+    const X=rotation.x;
+    const Y=rotation.y;
+    const Z=rotation.z; 
+    const cameraRotation = new BABYLON.Vector3(X, Y, Z);
+    camera.rotation = cameraRotation;
+    // console.log(camera)
+  });
+  
+    return scene;
+}
 
-      // This attaches the camera to the canvas
-      camera.attachControl(canvas, true);
-      /**************************************************************/
+  //   var createScene = function () {
 
-      // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
-      var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+  //     // This creates a basic Babylon Scene object (non-mesh)
+  //     var scene = new BABYLON.Scene(engine);
 
-      //Materials
-      var redMat = new BABYLON.StandardMaterial("red", scene);
-      redMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
-      redMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
-      redMat.specularColor = new BABYLON.Color3(1, 0, 0);
+  //      // Create a cube
+  //           var cube = BABYLON.MeshBuilder.CreateBox("cube", { size: 2 }, scene);
 
-      var greenMat = new BABYLON.StandardMaterial("green", scene);
-      greenMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
-      greenMat.emissiveColor = new BABYLON.Color3(0, 1, 0);
-      greenMat.specularColor = new BABYLON.Color3(0, 1, 0);
+  //           // Move the cube to the origin
+  //           cube.position = BABYLON.Vector3.Zero();
 
-      var blueMat = new BABYLON.StandardMaterial("blue", scene);
-      blueMat.diffuseColor = new BABYLON.Color3(0, 0, 1);
-      blueMat.emissiveColor = new BABYLON.Color3(0, 0, 1);
-      blueMat.specularColor = new BABYLON.Color3(0, 0, 1);
 
-      // Shapes
-      var plane1 = new BABYLON.Mesh.CreatePlane("plane1", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
-      plane1.position.x = -3;
-      plane1.position.z = 0;
-      plane1.material = redMat;
+  //     /********** DEVICE ORIENTATION CAMERA EXAMPLE **************************/
 
-      var plane2 = new BABYLON.Mesh.CreatePlane("plane2", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
-      plane2.position.x = 3;
-      plane2.position.z = -1.5;
-      plane2.material = greenMat;
+  //     // This creates and positions a device orientation camera 	
+  //     // var camera = new BABYLON.DeviceOrientationCamera("DevOr_camera", new BABYLON.Vector3(0, 0, 0), scene);
+  //     var camera = new BABYLON.FreeCamera("free_camera", new BABYLON.Vector3(0, 0, 0), scene);
 
-      var plane3 = new BABYLON.Mesh.CreatePlane("plane3", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
-      plane3.position.x = 3;
-      plane3.position.z = 1.5;
-      plane3.material = blueMat;
+  //     // This targets the camera to scene origin
+  //     // camera.setTarget(BABYLON.Vector3.Zero());
 
-      var ground = BABYLON.Mesh.CreateGround("ground1", 10, 10, 2, scene);
+  //     // This targets the camera to scene origin
+  //     camera.setTarget(new BABYLON.Vector3(0, 0, 10));
 
-      return scene;
+  //     // This attaches the camera to the canvas
+  //     camera.attachControl(canvas, true);
+  //     /**************************************************************/
 
-    };
+  //     // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+  //     var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 0, 0), scene);
+
+  //     //Materials
+  //     var redMat = new BABYLON.StandardMaterial("red", scene);
+  //     redMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+  //     redMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
+  //     redMat.specularColor = new BABYLON.Color3(1, 0, 0);
+
+  //     var greenMat = new BABYLON.StandardMaterial("green", scene);
+  //     greenMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
+  //     greenMat.emissiveColor = new BABYLON.Color3(0, 1, 0);
+  //     greenMat.specularColor = new BABYLON.Color3(0, 1, 0);
+
+  //     var blueMat = new BABYLON.StandardMaterial("blue", scene);
+  //     blueMat.diffuseColor = new BABYLON.Color3(0, 0, 1);
+  //     blueMat.emissiveColor = new BABYLON.Color3(0, 0, 1);
+  //     blueMat.specularColor = new BABYLON.Color3(0, 0, 1);
+
+  //     // Shapes
+  //     var plane1 = new BABYLON.Mesh.CreatePlane("plane1", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
+  //     plane1.position.x = -3;
+  //     plane1.position.z = 0;
+  //     plane1.material = redMat;
+
+  //     var plane2 = new BABYLON.Mesh.CreatePlane("plane2", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
+  //     plane2.position.x = 3;
+  //     plane2.position.z = -1.5;
+  //     plane2.material = greenMat;
+
+  //     var plane3 = new BABYLON.Mesh.CreatePlane("plane3", 3, scene, true, BABYLON.Mesh.DOUBLESIDE);
+  //     plane3.position.x = 3;
+  //     plane3.position.z = 1.5;
+  //     plane3.material = blueMat;
+
+  //     var ground = BABYLON.Mesh.CreateGround("ground1", 10, 10, 2, scene);
+
+      
+  // // Subscribe to IMU data
+  // const socket = io();
+  // socket.emit('subscribe');
+  // socket.on('imu-data', (data) => {
+  //   const { acceleration, rotation } = data;
+  //   // const { x, y, z } = acceleration;
+  //   const x= acceleration[0];
+  //   const y= acceleration[1];
+  //   const z= acceleration[2];
+  //   const cameraPosition = new BABYLON.Vector3(x * 5, y * 5, z * 5);
+  //   // camera.position = cameraPosition;
+
+  //   // const { X, Y, Z } = rotation;
+  //   const X=rotation.x;
+  //   const Y=rotation.y;
+  //   const Z=rotation.z; 
+  //   const cameraRotation = new BABYLON.Vector3(X, Y, Z);
+  //   camera.rotation = cameraRotation;
+  //   console.log(camera)
+  //   // console.log(rotation.x)
+  // });
+
+  //     return scene;
+
+  //   };
+    
     var scene = createScene();
     engine.runRenderLoop(function () {
       scene.render();
@@ -142,7 +168,9 @@
     window.addEventListener("resize", function () {
       engine.resize();
     });
-
+window.addEventListener('beforeunload', () => {
+  socket.emit('unsubscribe');
+});
   </script>
 </body>
 
