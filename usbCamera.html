@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>USB Camera Example</title>
+</head>
+
+<body>
+    <h1>USB Camera Example</h1>
+    <video id="video" autoplay></video>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script>
+        const vendorId = 0x10FA; // replace with the vendor ID of the USB camera
+        const productId = 0x2A5A; // replace with the product ID of the USB camera
+        function readAllMedia() {
+            navigator.mediaDevices.enumerateDevices()
+                .then(function (devices) {
+                    for (let x = 0; x < devices.length; x++) {
+                        let para = document.createElement('p')
+                        para.innerHTML = devices[x].deviceId + " | " + devices[x].label + "~"
+                        document.body.append(para)
+                    }
+                    console.log(devices)
+                    devices.forEach(function (device) {
+                        if (device.kind === 'videoinput' && device.vendorId === vendorId && device.productId === productId) {
+                            // The device is a USB camera with the specified vendor and product IDs.
+                            const deviceId = device.deviceId;
+                            // Use the deviceId to capture the video stream.
+
+                            const video = document.getElementById("video");
+
+                            navigator.mediaDevices.getUserMedia({ video: { deviceId: deviceId } })
+                                .then(function (stream) {
+                                    video.srcObject = stream;
+                                })
+                                .catch(function (error) {
+                                    console.log("Error: " + error);
+                                });
+                        }
+                    });
+                })
+                .catch(function (error) {
+                    console.log("Error: " + error);
+                });
+        }
+        document.addEventListener("click", readAllMedia)
+    </script>
+</body>
+
+</html>
